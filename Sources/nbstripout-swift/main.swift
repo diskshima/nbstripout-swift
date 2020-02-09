@@ -3,42 +3,53 @@ import Foundation
 import SwiftyJSON
 import Commander
 
+let cellsST: JSONSubscriptType = "cells"
+
 let main = command { (filepath: String) in
-    let content = try String(contentsOf: URL.init(fileURLWithPath: filepath), encoding: .utf8)
+    let data: Data
+    do {
+        let content = try String(contentsOfFile: filepath, encoding: .utf8)
+        data = content.data(using: .utf8, allowLossyConversion: false)!
+    } catch {
+        print("Failed to read file.")
+        return
+    }
 
-    if let data = content.data(using: .utf8, allowLossyConversion: false) {
-        var json = try JSON(data: data)
+    var json: JSON
+    do {
+        json = try JSON(data: data)
+    } catch {
+        print("Failed to convert data to JSON.")
+        return
+    }
 
-        let cellsST: JSONSubscriptType = "cells"
+    let cells = json[cellsST]
+    var newCells: [JSON] = []
 
-        let cells = json[cellsST]
-        var newCells: [JSON] = []
-
-        for cell in cells.arrayValue {
-            var newDict = JSON([String: Any?]())
-            for (key, subJson): (String, JSON) in cell {
-                var newValue: JSON
-                switch key {
-                case "metadata":
-                    newValue = JSON([String: Any?]())
-                case "outputs":
-                    newValue = JSON([])
-                case "execution_count":
-                    newValue = JSON.null
-                default:
-                    newValue = subJson
-                }
-
-                newDict[key] = newValue
+    for cell in cells.arrayValue {
+        var newDict = JSON([String: Any?]())
+        for (key, subJson): (String, JSON) in cell {
+            var newValue: JSON
+            switch key {
+            case "metadata":
+                newValue = JSON([String: Any?]())
+            case "outputs":
+                newValue = JSON([])
+            case "execution_count":
+                newValue = JSON.null
+            default:
+                newValue = subJson
             }
 
-            newCells.append(newDict)
+            newDict[key] = newValue
         }
 
-        json[cellsST] = JSON(newCells)
-
-        print(json)
+        newCells.append(newDict)
     }
+
+    json[cellsST] = JSON(newCells)
+
+    print(json)
 }
 
 main.run()
