@@ -3,9 +3,15 @@ import Foundation
 import SwiftyJSON
 import Commander
 
+let metadataST: JSONSubscriptType = "metadata"
 let cellsST: JSONSubscriptType = "cells"
 
-func replaceCells(_ json: inout JSON) {
+func cleanMetadata(_ json: inout JSON) {
+    // TODO: Support exclude list.
+    json[metadataST] = JSON([String: Any?]())
+}
+
+func cleanCells(_ json: inout JSON) {
     let cells = json[cellsST]
     var newCells: [JSON] = []
 
@@ -15,6 +21,7 @@ func replaceCells(_ json: inout JSON) {
             var newValue: JSON
             switch key {
             case "metadata":
+                // TODO: Support exclude list.
                 newValue = JSON([String: Any?]())
             case "outputs":
                 newValue = JSON([])
@@ -51,7 +58,9 @@ let main = command { (filepath: String) in
         return
     }
 
-    replaceCells(&json)
+    cleanMetadata(&json)
+    cleanCells(&json)
+
     print(json)
 }
 
