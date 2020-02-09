@@ -5,24 +5,7 @@ import Commander
 
 let cellsST: JSONSubscriptType = "cells"
 
-let main = command { (filepath: String) in
-    let data: Data
-    do {
-        let content = try String(contentsOfFile: filepath, encoding: .utf8)
-        data = content.data(using: .utf8, allowLossyConversion: false)!
-    } catch {
-        print("Failed to read file.")
-        return
-    }
-
-    var json: JSON
-    do {
-        json = try JSON(data: data)
-    } catch {
-        print("Failed to convert data to JSON.")
-        return
-    }
-
+func replaceCells(_ json: inout JSON) {
     let cells = json[cellsST]
     var newCells: [JSON] = []
 
@@ -48,7 +31,27 @@ let main = command { (filepath: String) in
     }
 
     json[cellsST] = JSON(newCells)
+}
 
+let main = command { (filepath: String) in
+    let data: Data
+    do {
+        let content = try String(contentsOfFile: filepath, encoding: .utf8)
+        data = content.data(using: .utf8, allowLossyConversion: false)!
+    } catch {
+        print("Failed to read file.")
+        return
+    }
+
+    var json: JSON
+    do {
+        json = try JSON(data: data)
+    } catch {
+        print("Failed to convert data to JSON.")
+        return
+    }
+
+    replaceCells(&json)
     print(json)
 }
 
