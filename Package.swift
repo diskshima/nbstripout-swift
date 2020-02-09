@@ -7,15 +7,16 @@ let package = Package(
     name: "nbstripout-swift",
     dependencies: [
         .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
+        .package(url: "https://github.com/kylef/Commander", from: "0.9.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "nbstripout-swift",
-            dependencies: ["SwiftyJSON"]),
+            dependencies: ["SwiftyJSON", "Commander"]),
         .testTarget(
             name: "nbstripout-swiftTests",
-            dependencies: ["nbstripout-swift"]),
+            dependencies: ["nbstripout-swift"])
     ]
 )
