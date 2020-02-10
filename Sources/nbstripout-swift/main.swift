@@ -3,16 +3,18 @@ import Foundation
 import SwiftyJSON
 import Commander
 
-let metadataST: JSONSubscriptType = "metadata"
-let cellsST: JSONSubscriptType = "cells"
+enum NBConstants {
+    public static let metadata: JSONSubscriptType = "metadata"
+    public static let cells: JSONSubscriptType = "cells"
+}
 
 func cleanMetadata(_ json: inout JSON) {
     // TODO: Support exclude list.
-    json[metadataST] = JSON([String: Any?]())
+    json[NBConstants.metadata] = JSON([String: Any?]())
 }
 
 func cleanCells(_ json: inout JSON) {
-    let cells = json[cellsST]
+    let cells = json[NBConstants.cells]
     var newCells: [JSON] = []
 
     for cell in cells.arrayValue {
@@ -37,7 +39,7 @@ func cleanCells(_ json: inout JSON) {
         newCells.append(newDict)
     }
 
-    json[cellsST] = JSON(newCells)
+    json[NBConstants.cells] = JSON(newCells)
 }
 
 func cleanNotebook(_ json: inout JSON) {
