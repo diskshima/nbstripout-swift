@@ -1,7 +1,7 @@
 import Foundation
 
+import SPMUtility
 import SwiftyJSON
-import Commander
 
 enum NBConstants {
     public static let metadata: JSONSubscriptType = "metadata"
@@ -47,10 +47,54 @@ func cleanNotebook(_ json: inout JSON) {
     cleanCells(&json)
 }
 
-let main = command { (filepath: String) in
+func parseArguments() -> (success: Bool, filepath: String?, textconv: Bool?) {
+    let filepath: String
+    let textconv: Bool?
+
+    do {
+        let parser = ArgumentParser(commandName: "nbstripout-swift",
+                                    usage: "FILE",
+                                    overview: "Strip out non-source cells and metadata from Jupyter notebooks")
+
+        let ptextconv = parser.add(option: "--textconv",
+                                   shortName: "-t",
+                                   kind: Bool.self,
+                                   usage: "Prints out the result to standard output instead of overwriting the file.",
+                                   completion: ShellCompletion.none)
+
+        let pfilepath = parser.add(positional: "filepath",
+                                   kind: String.self,
+                                   optional: false,
+                                   usage: "File path to Jupyter notebook.",
+                                   completion: ShellCompletion.filename)
+
+        let argsv = Array(CommandLine.arguments.dropFirst())
+        let pargs = try parser.parse(argsv)
+
+        textconv = pargs.get(ptextconv)
+        filepath = pargs.get(pfilepath)!
+        return (success: true, filepath: filepath, textconv: textconv)
+    } catch ArgumentParserError.expectedValue(let value) {
+        print("Missing value for argument \(value).")
+    } catch ArgumentParserError.expectedArguments(_, let stringArray) {
+        print("Missing arguments: \(stringArray.joined())")
+    } catch {
+        print(error.localizedDescription)
+    }
+    return (success: false, filepath: nil, textconv: nil)
+}
+
+
+func main() {
+    let args = parseArguments()
+
+    if !args.success {
+        exit(-1)
+    }
+
     let data: Data
     do {
-        let content = try String(contentsOfFile: filepath, encoding: .utf8)
+        let content = try String(contentsOfFile: args.filepath!, encoding: .utf8)
         data = content.data(using: .utf8, allowLossyConversion: false)!
     } catch {
         print("Failed to read file.")
@@ -70,4 +114,4 @@ let main = command { (filepath: String) in
     print(json)
 }
 
-main.run()
+main()
