@@ -13,40 +13,6 @@ func cleanMetadata(_ json: inout JSON) {
     json[NBConstants.metadata] = JSON([String: Any?]())
 }
 
-func cleanCells(_ json: inout JSON) {
-    let cells = json[NBConstants.cells]
-    var newCells: [JSON] = []
-
-    for cell in cells.arrayValue {
-        var newDict = JSON([String: Any?]())
-        for (key, subJson): (String, JSON) in cell {
-            var newValue: JSON
-            switch key {
-            case "metadata":
-                // TODO: Support exclude list.
-                newValue = JSON([String: Any?]())
-            case "outputs":
-                newValue = JSON([])
-            case "execution_count":
-                newValue = JSON.null
-            default:
-                newValue = subJson
-            }
-
-            newDict[key] = newValue
-        }
-
-        newCells.append(newDict)
-    }
-
-    json[NBConstants.cells] = JSON(newCells)
-}
-
-func cleanNotebook(_ json: inout JSON) {
-    cleanMetadata(&json)
-    cleanCells(&json)
-}
-
 func parseArguments() -> (success: Bool, filepath: String, textconv: Bool) {
     let filepath: String
     let textconv: Bool
@@ -82,6 +48,40 @@ func parseArguments() -> (success: Bool, filepath: String, textconv: Bool) {
         print(error.localizedDescription)
     }
     return (success: false, filepath: "", textconv: false)
+}
+
+func cleanCells(_ json: inout JSON) {
+    let cells = json[NBConstants.cells]
+    var newCells: [JSON] = []
+
+    for cell in cells.arrayValue {
+        var newDict = JSON([String: Any?]())
+        for (key, subJson): (String, JSON) in cell {
+            var newValue: JSON
+            switch key {
+            case "metadata":
+                // TODO: Support exclude list.
+                newValue = JSON([String: Any?]())
+            case "outputs":
+                newValue = JSON([])
+            case "execution_count":
+                newValue = JSON.null
+            default:
+                newValue = subJson
+            }
+
+            newDict[key] = newValue
+        }
+
+        newCells.append(newDict)
+    }
+
+    json[NBConstants.cells] = JSON(newCells)
+}
+
+func cleanNotebook(_ json: inout JSON) {
+    cleanMetadata(&json)
+    cleanCells(&json)
 }
 
 func main() {
