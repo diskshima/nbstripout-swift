@@ -13,13 +13,10 @@ func cleanMetadata(_ json: inout JSON) {
     json[NBConstants.metadata] = JSON([String: Any?]())
 }
 
-func parseArguments() -> (filepath: String, textconv: Bool)? {
-    let filepath: String
-    let textconv: Bool
-
+func parseArguments() -> (filepaths: [String], textconv: Bool)? {
     do {
         let parser = ArgumentParser(commandName: "nbstripout-swift",
-                                    usage: "[-t] filepath",
+                                    usage: "[-t] file1 file2...",
                                     overview: "Strip out non-source cells and metadata from Jupyter notebooks")
 
         let ptextconv = parser.add(option: "--textconv",
@@ -28,18 +25,19 @@ func parseArguments() -> (filepath: String, textconv: Bool)? {
                                    usage: "Prints out the result to standard output instead of overwriting the file.",
                                    completion: ShellCompletion.none)
 
-        let pfilepath = parser.add(positional: "filepath",
-                                   kind: String.self,
-                                   optional: false,
-                                   usage: "File path to Jupyter notebook.",
-                                   completion: ShellCompletion.filename)
+        let pfilepaths = parser.add(positional: "filepaths",
+                                    kind: [String].self,
+                                    optional: false,
+                                    strategy: .upToNextOption,
+                                    usage: "File paths to Jupyter notebook.",
+                                    completion: ShellCompletion.filename)
 
         let argsv = Array(CommandLine.arguments.dropFirst())
         let pargs = try parser.parse(argsv)
 
-        textconv = pargs.get(ptextconv) ?? false
-        filepath = pargs.get(pfilepath)!
-        return (filepath: filepath, textconv: textconv)
+        let textconv = pargs.get(ptextconv) ?? false
+        let filepaths = pargs.get(pfilepaths)!
+        return (filepaths: filepaths, textconv: textconv)
     } catch ArgumentParserError.expectedValue(let value) {
         print("Missing value for argument \(value).")
     } catch ArgumentParserError.expectedArguments(_, let stringArray) {
@@ -85,12 +83,10 @@ func cleanNotebook(_ json: inout JSON) {
     cleanCells(&json)
 }
 
-func main() {
-    guard let args = parseArguments() else { exit(-1) }
-
+func processFile(_ filepath: String, _ textconv: Bool) {
     let data: Data
     do {
-        let content = try String(contentsOfFile: args.filepath, encoding: .utf8)
+        let content = try String(contentsOfFile: filepath, encoding: .utf8)
         data = content.data(using: .utf8, allowLossyConversion: false)!
     } catch {
         print("Failed to read file.")
@@ -109,15 +105,25 @@ func main() {
         exit(-1)
     }
 
-    if args.textconv {
+    if textconv {
         print(jsonStr)
     } else {
         do {
-            try jsonStr.write(toFile: args.filepath, atomically: false, encoding: .utf8)
+            try jsonStr.write(toFile: filepath, atomically: false, encoding: .utf8)
         } catch {
             print("Failed to write to file.")
             exit(-1)
         }
+    }
+}
+
+func main() {
+    guard let args = parseArguments() else { exit(-1) }
+
+    let textconv = args.textconv
+
+    for filepath in args.filepaths {
+        processFile(filepath, textconv)
     }
 }
 
