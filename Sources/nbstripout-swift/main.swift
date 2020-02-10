@@ -47,9 +47,9 @@ func cleanNotebook(_ json: inout JSON) {
     cleanCells(&json)
 }
 
-func parseArguments() -> (success: Bool, filepath: String?, textconv: Bool?) {
+func parseArguments() -> (success: Bool, filepath: String, textconv: Bool) {
     let filepath: String
-    let textconv: Bool?
+    let textconv: Bool
 
     do {
         let parser = ArgumentParser(commandName: "nbstripout-swift",
@@ -71,7 +71,7 @@ func parseArguments() -> (success: Bool, filepath: String?, textconv: Bool?) {
         let argsv = Array(CommandLine.arguments.dropFirst())
         let pargs = try parser.parse(argsv)
 
-        textconv = pargs.get(ptextconv)
+        textconv = pargs.get(ptextconv) ?? false
         filepath = pargs.get(pfilepath)!
         return (success: true, filepath: filepath, textconv: textconv)
     } catch ArgumentParserError.expectedValue(let value) {
@@ -81,7 +81,7 @@ func parseArguments() -> (success: Bool, filepath: String?, textconv: Bool?) {
     } catch {
         print(error.localizedDescription)
     }
-    return (success: false, filepath: nil, textconv: nil)
+    return (success: false, filepath: "", textconv: false)
 }
 
 
@@ -94,7 +94,7 @@ func main() {
 
     let data: Data
     do {
-        let content = try String(contentsOfFile: args.filepath!, encoding: .utf8)
+        let content = try String(contentsOfFile: args.filepath, encoding: .utf8)
         data = content.data(using: .utf8, allowLossyConversion: false)!
     } catch {
         print("Failed to read file.")
@@ -111,7 +111,21 @@ func main() {
 
     cleanNotebook(&json)
 
-    print(json)
+    if let jsonStr = json.rawString() {
+        if args.textconv {
+            print(jsonStr)
+        } else {
+            do {
+                try jsonStr.write(toFile: args.filepath, atomically: false, encoding: .utf8)
+            } catch {
+                print("Failed to write to file.")
+                exit(-1)
+            }
+        }
+    } else {
+        print("Failed to write JSON as string.")
+        exit(-1)
+    }
 }
 
 main()
