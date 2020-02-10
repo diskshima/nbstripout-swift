@@ -13,7 +13,7 @@ func cleanMetadata(_ json: inout JSON) {
     json[NBConstants.metadata] = JSON([String: Any?]())
 }
 
-func parseArguments() -> (success: Bool, filepath: String, textconv: Bool) {
+func parseArguments() -> (filepath: String, textconv: Bool)? {
     let filepath: String
     let textconv: Bool
 
@@ -39,7 +39,7 @@ func parseArguments() -> (success: Bool, filepath: String, textconv: Bool) {
 
         textconv = pargs.get(ptextconv) ?? false
         filepath = pargs.get(pfilepath)!
-        return (success: true, filepath: filepath, textconv: textconv)
+        return (filepath: filepath, textconv: textconv)
     } catch ArgumentParserError.expectedValue(let value) {
         print("Missing value for argument \(value).")
     } catch ArgumentParserError.expectedArguments(_, let stringArray) {
@@ -47,7 +47,8 @@ func parseArguments() -> (success: Bool, filepath: String, textconv: Bool) {
     } catch {
         print(error.localizedDescription)
     }
-    return (success: false, filepath: "", textconv: false)
+
+    return nil
 }
 
 func cleanCells(_ json: inout JSON) {
@@ -85,11 +86,7 @@ func cleanNotebook(_ json: inout JSON) {
 }
 
 func main() {
-    let args = parseArguments()
-
-    if !args.success {
-        exit(-1)
-    }
+    guard let args = parseArguments() else { exit(-1) }
 
     let data: Data
     do {
