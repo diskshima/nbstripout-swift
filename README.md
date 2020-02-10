@@ -1,3 +1,3 @@
 # nbstripout-swift
 
-A description of this package.
+[nbstripout](https://github.com/kynan/nbstripout) implementation in Swift.
