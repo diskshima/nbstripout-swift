@@ -22,13 +22,13 @@ struct RemoveOptions: OptionSet {
     static let all: RemoveOptions = [.outputs, .executionCount, .colab]
 }
 
-struct Options {
+struct CmdOptions {
     let filepaths: [String]
     let textconv: Bool
     let removeOptions: RemoveOptions
 }
 
-func parseArguments() -> Options? {
+func parseArguments() -> CmdOptions? {
     do {
         let parser = ArgumentParser(commandName: "nbstripout-swift",
                                     usage: "[-ceot] file1 file2...",
@@ -71,7 +71,6 @@ func parseArguments() -> Options? {
         let filepaths = pargs.get(pfilepaths)!
         let textconv = pargs.get(ptextconv) ?? false
 
-        // Options
         var removeOptions = RemoveOptions.none
 
         if pargs.get(poutputs) ?? false { removeOptions.insert(.outputs) }
@@ -81,7 +80,7 @@ func parseArguments() -> Options? {
         // If nothing was specified, default to clean all.
         if removeOptions.isEmpty { removeOptions = RemoveOptions.all }
 
-        return Options(
+        return CmdOptions(
             filepaths: filepaths, textconv: textconv, removeOptions: removeOptions
         )
     } catch ArgumentParserError.expectedValue(let value) {
@@ -148,7 +147,7 @@ func cleanNotebook(_ json: inout JSON, _ removeOptions: RemoveOptions) {
     cleanCells(&json, removeOptions)
 }
 
-func processFile(_ filepath: String, _ options: Options) {
+func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
     let data: Data
     do {
         let content = try String(contentsOfFile: filepath, encoding: .utf8)
@@ -163,14 +162,14 @@ func processFile(_ filepath: String, _ options: Options) {
         return
     }
 
-    cleanNotebook(&json, options.removeOptions)
+    cleanNotebook(&json, cmdOptions.removeOptions)
 
     guard let jsonStr = json.rawString() else {
         print("Failed to convert JSON to String.")
         exit(-1)
     }
 
-    if options.textconv {
+    if cmdOptions.textconv {
         print(jsonStr)
     } else {
         do {
@@ -183,10 +182,10 @@ func processFile(_ filepath: String, _ options: Options) {
 }
 
 func main() {
-    guard let options = parseArguments() else { exit(-1) }
+    guard let cmdOptions = parseArguments() else { exit(-1) }
 
-    for filepath in options.filepaths {
-        processFile(filepath, options)
+    for filepath in cmdOptions.filepaths {
+        processFile(filepath, cmdOptions)
     }
 }
 
