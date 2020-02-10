@@ -2,12 +2,7 @@ import XCTest
 import class Foundation.Bundle
 
 final class nbstripout_swiftTests: XCTestCase {
-    func testWhenNoFilepathsAreGiven() throws {
-        // Some of the APIs that we use below are available in macOS 10.13 and above.
-        guard #available(macOS 10.13, *) else {
-            return
-        }
-
+    func executeBinary() throws -> String? {
         let binary = productsDirectory.appendingPathComponent("nbstripout-swift")
 
         let process = Process()
@@ -20,7 +15,12 @@ final class nbstripout_swiftTests: XCTestCase {
         process.waitUntilExit()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8)
+
+        return String(data: data, encoding: .utf8)
+    }
+
+    func testWhenNoFilepathsAreGiven() throws {
+        let output = try! executeBinary()
 
         XCTAssertEqual(output, "Missing arguments: filepaths\n")
     }

@@ -5,6 +5,9 @@ import PackageDescription
 
 let package = Package(
     name: "nbstripout-swift",
+    platforms: [
+        .macOS(.v10_13)
+    ],
     dependencies: [
         .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
         .package(url: "https://github.com/crelies/ArgumentParserKit.git", from: "1.0.0")
