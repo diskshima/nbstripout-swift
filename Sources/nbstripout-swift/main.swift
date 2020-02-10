@@ -6,6 +6,7 @@ import SwiftyJSON
 enum NBConstants {
     public static let metadata: JSONSubscriptType = "metadata"
     public static let cells: JSONSubscriptType = "cells"
+    public static let kernelspec: JSONSubscriptType = "kernelspec"
 }
 
 struct RemoveOptions: OptionSet {
@@ -94,7 +95,13 @@ func parseArguments() -> Options? {
 
 func cleanMetadata(_ json: inout JSON, _ removeOptions: RemoveOptions) {
     // TODO: Support exclude list.
-    json[NBConstants.metadata] = JSON([String: Any?]())
+    let metadata = json[NBConstants.metadata]
+
+    var newMetadata = JSON([String: Any?]())
+
+    newMetadata[NBConstants.kernelspec] = metadata[NBConstants.kernelspec]
+
+    json[NBConstants.metadata] = newMetadata
 }
 
 func cleanCells(_ json: inout JSON, _ removeOptions: RemoveOptions) {
@@ -107,7 +114,6 @@ func cleanCells(_ json: inout JSON, _ removeOptions: RemoveOptions) {
             var newValue: JSON = subJson
             switch key {
             case "metadata":
-                // TODO: Support exclude list.
                 newValue = JSON([String: Any?]())
             case "outputs":
                 if removeOptions.contains(.outputs) {
