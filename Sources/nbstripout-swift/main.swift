@@ -7,6 +7,8 @@ enum NBConstants {
     public static let metadata: JSONSubscriptType = "metadata"
     public static let cells: JSONSubscriptType = "cells"
     public static let kernelspec: JSONSubscriptType = "kernelspec"
+    public static let accelerator: JSONSubscriptType = "accelerator"
+    public static let colab: JSONSubscriptType = "colab"
 }
 
 struct RemoveOptions: OptionSet {
@@ -29,7 +31,7 @@ struct Options {
 func parseArguments() -> Options? {
     do {
         let parser = ArgumentParser(commandName: "nbstripout-swift",
-                                    usage: "[-t] [-o] file1 file2...",
+                                    usage: "[-ceot] file1 file2...",
                                     overview: "Strip out non-source cells and metadata from Jupyter notebooks")
 
         let ptextconv = parser.add(option: "--textconv",
@@ -41,20 +43,26 @@ func parseArguments() -> Options? {
         let poutputs = parser.add(option: "--outputs",
                                   shortName: "-o",
                                   kind: Bool.self,
-                                  usage: "Remove outputs.",
+                                  usage: "Remove outputs fields.",
                                   completion: ShellCompletion.none)
 
-        let pexecCount = parser.add(option: "--execution-counts",
+        let pexecCount = parser.add(option: "--execution-count",
                                     shortName: "-e",
                                     kind: Bool.self,
-                                    usage: "Remove execution counts.",
+                                    usage: "Remove execution count fields.",
                                     completion: ShellCompletion.none)
+
+        let pcolab = parser.add(option: "--colab",
+                                shortName: "-c",
+                                kind: Bool.self,
+                                usage: "Remove colab related fields.",
+                                completion: ShellCompletion.none)
 
         let pfilepaths = parser.add(positional: "filepaths",
                                     kind: [String].self,
                                     optional: false,
                                     strategy: .upToNextOption,
-                                    usage: "File paths to Jupyter notebook.",
+                                    usage: "File paths to Jupyter notebooks.",
                                     completion: ShellCompletion.filename)
 
         let argsv = Array(CommandLine.arguments.dropFirst())
@@ -72,6 +80,10 @@ func parseArguments() -> Options? {
 
         if pargs.get(pexecCount) ?? false {
             removeOptions.insert(.executionCount)
+        }
+
+        if pargs.get(pcolab) ?? false {
+            removeOptions.insert(.colab)
         }
 
         // If nothing was specified, default to clean all.
@@ -94,12 +106,17 @@ func parseArguments() -> Options? {
 }
 
 func cleanMetadata(_ json: inout JSON, _ removeOptions: RemoveOptions) {
-    // TODO: Support exclude list.
     let metadata = json[NBConstants.metadata]
 
     var newMetadata = JSON([String: Any?]())
 
-    newMetadata[NBConstants.kernelspec] = metadata[NBConstants.kernelspec]
+    var keeps = [NBConstants.kernelspec]
+
+    if removeOptions.contains(.colab) == false {
+        keeps.append(contentsOf: [NBConstants.accelerator, NBConstants.colab])
+    }
+
+    keeps.forEach { newMetadata[$0] = metadata[$0] }
 
     json[NBConstants.metadata] = newMetadata
 }
