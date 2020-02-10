@@ -2,20 +2,16 @@ import XCTest
 import class Foundation.Bundle
 
 final class nbstripout_swiftTests: XCTestCase {
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-
+    func testWhenNoFilepathsAreGiven() throws {
         // Some of the APIs that we use below are available in macOS 10.13 and above.
         guard #available(macOS 10.13, *) else {
             return
         }
 
-        let fooBinary = productsDirectory.appendingPathComponent("nbstripout-swift")
+        let binary = productsDirectory.appendingPathComponent("nbstripout-swift")
 
         let process = Process()
-        process.executableURL = fooBinary
+        process.executableURL = binary
 
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -26,7 +22,7 @@ final class nbstripout_swiftTests: XCTestCase {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: data, encoding: .utf8)
 
-        XCTAssertEqual(output, "Hello, world!\n")
+        XCTAssertEqual(output, "Missing arguments: filepaths\n")
     }
 
     /// Returns path to the built products directory.
@@ -42,6 +38,6 @@ final class nbstripout_swiftTests: XCTestCase {
     }
 
     static var allTests = [
-        ("testExample", testExample),
+        ("testWhenNoFilepathsAreGiven", testWhenNoFilepathsAreGiven)
     ]
 }
