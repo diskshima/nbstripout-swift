@@ -8,10 +8,21 @@ enum NBConstants {
     public static let cells: JSONSubscriptType = "cells"
 }
 
+struct RemoveOptions: OptionSet {
+    let rawValue: Int
+
+    static let outputs = RemoveOptions(rawValue: 1 << 0)
+    static let executionCount = RemoveOptions(rawValue: 1 << 1)
+    static let colab = RemoveOptions(rawValue: 1 << 2)
+
+    static let none: RemoveOptions = []
+    static let all: RemoveOptions = [.outputs, .executionCount, .colab]
+}
+
 struct Options {
-    var filepaths: [String]
-    var textconv: Bool
-    var removeOutputs: Bool
+    let filepaths: [String]
+    let textconv: Bool
+    let removeOptions: RemoveOptions
 }
 
 func parseArguments() -> Options? {
@@ -26,11 +37,17 @@ func parseArguments() -> Options? {
                                    usage: "Prints out the result to standard output instead of overwriting the file.",
                                    completion: ShellCompletion.none)
 
-        let poutput = parser.add(option: "--outputs",
-                                shortName: "-o",
-                                kind: Bool.self,
-                                usage: "Remove outputs.",
-                                completion: ShellCompletion.none)
+        let poutputs = parser.add(option: "--outputs",
+                                  shortName: "-o",
+                                  kind: Bool.self,
+                                  usage: "Remove outputs.",
+                                  completion: ShellCompletion.none)
+
+        let pexecCount = parser.add(option: "--execution-counts",
+                                    shortName: "-e",
+                                    kind: Bool.self,
+                                    usage: "Remove execution counts.",
+                                    completion: ShellCompletion.none)
 
         let pfilepaths = parser.add(positional: "filepaths",
                                     kind: [String].self,
@@ -42,13 +59,28 @@ func parseArguments() -> Options? {
         let argsv = Array(CommandLine.arguments.dropFirst())
         let pargs = try parser.parse(argsv)
 
-        let textconv = pargs.get(ptextconv) ?? false
-        let removeOutputs = pargs.get(poutput) ?? false
         let filepaths = pargs.get(pfilepaths)!
+        let textconv = pargs.get(ptextconv) ?? false
+
+        // Options
+        var removeOptions = RemoveOptions.none
+
+        if pargs.get(poutputs) ?? false {
+            removeOptions.insert(.outputs)
+        }
+
+        if pargs.get(pexecCount) ?? false {
+            removeOptions.insert(.executionCount)
+        }
+
+        // If nothing was specified, default to clean all.
+        if removeOptions.isEmpty {
+            removeOptions = RemoveOptions.all
+        }
 
         return Options(filepaths: filepaths,
                        textconv: textconv,
-                       removeOutputs: removeOutputs)
+                       removeOptions: removeOptions)
     } catch ArgumentParserError.expectedValue(let value) {
         print("Missing value for argument \(value).")
     } catch ArgumentParserError.expectedArguments(_, let stringArray) {
@@ -60,27 +92,31 @@ func parseArguments() -> Options? {
     return nil
 }
 
-func cleanMetadata(_ json: inout JSON, _ options: Options) {
+func cleanMetadata(_ json: inout JSON, _ removeOptions: RemoveOptions) {
     // TODO: Support exclude list.
     json[NBConstants.metadata] = JSON([String: Any?]())
 }
 
-func cleanCells(_ json: inout JSON) {
+func cleanCells(_ json: inout JSON, _ removeOptions: RemoveOptions) {
     let cells = json[NBConstants.cells]
     var newCells: [JSON] = []
 
     for cell in cells.arrayValue {
         var newDict = JSON([String: Any?]())
         for (key, subJson): (String, JSON) in cell {
-            var newValue: JSON
+            var newValue: JSON = subJson
             switch key {
             case "metadata":
                 // TODO: Support exclude list.
                 newValue = JSON([String: Any?]())
             case "outputs":
-                newValue = JSON([])
+                if removeOptions.contains(.outputs) {
+                    newValue = JSON([])
+                }
             case "execution_count":
-                newValue = JSON.null
+                if removeOptions.contains(.executionCount) {
+                    newValue = JSON.null
+                }
             default:
                 newValue = subJson
             }
@@ -94,9 +130,9 @@ func cleanCells(_ json: inout JSON) {
     json[NBConstants.cells] = JSON(newCells)
 }
 
-func cleanNotebook(_ json: inout JSON, _ options: Options) {
-    cleanMetadata(&json, options)
-    cleanCells(&json)
+func cleanNotebook(_ json: inout JSON, _ removeOptions: RemoveOptions) {
+    cleanMetadata(&json, removeOptions)
+    cleanCells(&json, removeOptions)
 }
 
 func processFile(_ filepath: String, _ options: Options) {
@@ -114,7 +150,7 @@ func processFile(_ filepath: String, _ options: Options) {
         return
     }
 
-    cleanNotebook(&json, options)
+    cleanNotebook(&json, options.removeOptions)
 
     guard let jsonStr = json.rawString() else {
         print("Failed to convert JSON to String.")
