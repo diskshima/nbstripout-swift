@@ -53,7 +53,7 @@ func parseArguments() -> (success: Bool, filepath: String?, textconv: Bool?) {
 
     do {
         let parser = ArgumentParser(commandName: "nbstripout-swift",
-                                    usage: "FILE",
+                                    usage: "[-t] filepath",
                                     overview: "Strip out non-source cells and metadata from Jupyter notebooks")
 
         let ptextconv = parser.add(option: "--textconv",
