@@ -84,7 +84,6 @@ func parseArguments() -> (success: Bool, filepath: String, textconv: Bool) {
     return (success: false, filepath: "", textconv: false)
 }
 
-
 func main() {
     let args = parseArguments()
 
@@ -101,30 +100,27 @@ func main() {
         return
     }
 
-    var json: JSON
-    do {
-        json = try JSON(data: data)
-    } catch {
+    guard var json = try? JSON(data: data) else {
         print("Failed to convert data to JSON.")
         return
     }
 
     cleanNotebook(&json)
 
-    if let jsonStr = json.rawString() {
-        if args.textconv {
-            print(jsonStr)
-        } else {
-            do {
-                try jsonStr.write(toFile: args.filepath, atomically: false, encoding: .utf8)
-            } catch {
-                print("Failed to write to file.")
-                exit(-1)
-            }
-        }
-    } else {
-        print("Failed to write JSON as string.")
+    guard let jsonStr = json.rawString() else {
+        print("Failed to convert JSON to String.")
         exit(-1)
+    }
+
+    if args.textconv {
+        print(jsonStr)
+    } else {
+        do {
+            try jsonStr.write(toFile: args.filepath, atomically: false, encoding: .utf8)
+        } catch {
+            print("Failed to write to file.")
+            exit(-1)
+        }
     }
 }
 
