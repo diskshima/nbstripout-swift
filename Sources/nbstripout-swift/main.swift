@@ -8,15 +8,16 @@ enum NBConstants {
     public static let cells: JSONSubscriptType = "cells"
 }
 
-func cleanMetadata(_ json: inout JSON) {
-    // TODO: Support exclude list.
-    json[NBConstants.metadata] = JSON([String: Any?]())
+struct Options {
+    var filepaths: [String]
+    var textconv: Bool
+    var removeOutputs: Bool
 }
 
-func parseArguments() -> (filepaths: [String], textconv: Bool)? {
+func parseArguments() -> Options? {
     do {
         let parser = ArgumentParser(commandName: "nbstripout-swift",
-                                    usage: "[-t] file1 file2...",
+                                    usage: "[-t] [-o] file1 file2...",
                                     overview: "Strip out non-source cells and metadata from Jupyter notebooks")
 
         let ptextconv = parser.add(option: "--textconv",
@@ -24,6 +25,12 @@ func parseArguments() -> (filepaths: [String], textconv: Bool)? {
                                    kind: Bool.self,
                                    usage: "Prints out the result to standard output instead of overwriting the file.",
                                    completion: ShellCompletion.none)
+
+        let poutput = parser.add(option: "--outputs",
+                                shortName: "-o",
+                                kind: Bool.self,
+                                usage: "Remove outputs.",
+                                completion: ShellCompletion.none)
 
         let pfilepaths = parser.add(positional: "filepaths",
                                     kind: [String].self,
@@ -36,8 +43,12 @@ func parseArguments() -> (filepaths: [String], textconv: Bool)? {
         let pargs = try parser.parse(argsv)
 
         let textconv = pargs.get(ptextconv) ?? false
+        let removeOutputs = pargs.get(poutput) ?? false
         let filepaths = pargs.get(pfilepaths)!
-        return (filepaths: filepaths, textconv: textconv)
+
+        return Options(filepaths: filepaths,
+                       textconv: textconv,
+                       removeOutputs: removeOutputs)
     } catch ArgumentParserError.expectedValue(let value) {
         print("Missing value for argument \(value).")
     } catch ArgumentParserError.expectedArguments(_, let stringArray) {
@@ -47,6 +58,11 @@ func parseArguments() -> (filepaths: [String], textconv: Bool)? {
     }
 
     return nil
+}
+
+func cleanMetadata(_ json: inout JSON, _ options: Options) {
+    // TODO: Support exclude list.
+    json[NBConstants.metadata] = JSON([String: Any?]())
 }
 
 func cleanCells(_ json: inout JSON) {
@@ -78,12 +94,12 @@ func cleanCells(_ json: inout JSON) {
     json[NBConstants.cells] = JSON(newCells)
 }
 
-func cleanNotebook(_ json: inout JSON) {
-    cleanMetadata(&json)
+func cleanNotebook(_ json: inout JSON, _ options: Options) {
+    cleanMetadata(&json, options)
     cleanCells(&json)
 }
 
-func processFile(_ filepath: String, _ textconv: Bool) {
+func processFile(_ filepath: String, _ options: Options) {
     let data: Data
     do {
         let content = try String(contentsOfFile: filepath, encoding: .utf8)
@@ -98,14 +114,14 @@ func processFile(_ filepath: String, _ textconv: Bool) {
         return
     }
 
-    cleanNotebook(&json)
+    cleanNotebook(&json, options)
 
     guard let jsonStr = json.rawString() else {
         print("Failed to convert JSON to String.")
         exit(-1)
     }
 
-    if textconv {
+    if options.textconv {
         print(jsonStr)
     } else {
         do {
@@ -118,12 +134,10 @@ func processFile(_ filepath: String, _ textconv: Bool) {
 }
 
 func main() {
-    guard let args = parseArguments() else { exit(-1) }
+    guard let options = parseArguments() else { exit(-1) }
 
-    let textconv = args.textconv
-
-    for filepath in args.filepaths {
-        processFile(filepath, textconv)
+    for filepath in options.filepaths {
+        processFile(filepath, options)
     }
 }
 
