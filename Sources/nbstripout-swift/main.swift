@@ -4,11 +4,11 @@ import ArgumentParserKit
 import SwiftyJSON
 
 enum NBConstants {
-    public static let metadata: JSONSubscriptType = "metadata"
-    public static let cells: JSONSubscriptType = "cells"
-    public static let kernelspec: JSONSubscriptType = "kernelspec"
-    public static let accelerator: JSONSubscriptType = "accelerator"
-    public static let colab: JSONSubscriptType = "colab"
+    public static let metadata = "metadata"
+    public static let cells = "cells"
+    public static let kernelspec = "kernelspec"
+    public static let accelerator = "accelerator"
+    public static let colab = "colab"
 }
 
 struct RemoveOptions: OptionSet {
