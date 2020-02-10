@@ -1,6 +1,8 @@
 import XCTest
 import class Foundation.Bundle
 
+import SwiftyJSON
+
 final class nbstripout_swiftTests: XCTestCase {
     let sampleNB = URL(fileURLWithPath: "Tests/examples/fizzbuzz_colab.ipynb")
 
@@ -18,12 +20,28 @@ final class nbstripout_swiftTests: XCTestCase {
         return tempfile
     }
 
-    func executeBinary(arguments: [String]? = []) -> String? {
+    func readJSON(_ file: URL) -> JSON {
+        guard let content = try? String(contentsOf: file, encoding: .utf8) else {
+            fatalError("Failed to read temprary file.")
+        }
+        let data = content.data(using: .utf8, allowLossyConversion: false)!
+
+        guard let json = try? JSON(data: data) else {
+            fatalError("Failed to parse JSON.")
+        }
+
+        return json
+    }
+
+    func executeBinary(arguments: String? = nil) -> String? {
         let binary = productsDirectory.appendingPathComponent("nbstripout-swift")
 
         let process = Process()
         process.executableURL = binary
-        process.arguments = arguments
+
+        if arguments != nil {
+            process.arguments = arguments?.components(separatedBy: " ")
+        }
 
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -46,17 +64,81 @@ final class nbstripout_swiftTests: XCTestCase {
     }
 
     func testWhenInvalidFilepathIsGiven() throws {
-        let output = executeBinary(
-            arguments: "INVALID_FILE_PATH".components(separatedBy: " "))
+        let output = executeBinary(arguments: "INVALID_FILE_PATH")
 
         XCTAssertEqual(output, "Failed to read file.\n")
+    }
+
+    func testCOptionShouldOnlyRemoveColab() throws {
+        let tempfile = createTemporaryNB()
+
+        _ = executeBinary(arguments: "-c \(tempfile.path)")
+
+        let json = readJSON(tempfile)
+
+        XCTAssertEqual(json["metadata"]["accelerator"].description, "null")
+        XCTAssertEqual(json["metadata"]["colab"].description, "null")
+
+        let cells = json["cells"]
+        cells.arrayValue.forEach { cell in
+            XCTAssertNotEqual(cell["execution_count"].description, "null")
+        }
+    }
+
+    func testEOptionShouldOnlyRemoveExecutionCount() throws {
+        let tempfile = createTemporaryNB()
+
+        _ = executeBinary(arguments: "-e \(tempfile.path)")
+
+        let json = readJSON(tempfile)
+
+        let cells = json["cells"]
+        cells.arrayValue.forEach { cell in
+            XCTAssertEqual(cell["execution_count"].description, "null")
+        }
+
+        XCTAssertNotEqual(json["metadata"]["accelerator"].description, "null")
+        XCTAssertNotEqual(json["metadata"]["colab"].description, "null")
+    }
+
+    func testOOptionShouldOnlyRemoveOutputs() throws {
+        let tempfile = createTemporaryNB()
+
+        _ = executeBinary(arguments: "-o \(tempfile.path)")
+
+        let json = readJSON(tempfile)
+
+        let cells = json["cells"]
+        cells.arrayValue.forEach { cell in
+            XCTAssertEqual(cell["outputs"], JSON([]))
+            XCTAssertNotEqual(cell["execution_count"].description, "null")
+        }
+
+        XCTAssertNotEqual(json["metadata"]["accelerator"].description, "null")
+        XCTAssertNotEqual(json["metadata"]["colab"].description, "null")
+    }
+
+    func testNoOptionsShouldRemoveAll() throws {
+        let tempfile = createTemporaryNB()
+
+        _ = executeBinary(arguments: tempfile.path)
+
+        let json = readJSON(tempfile)
+
+        XCTAssertEqual(json["metadata"]["accelerator"].description, "null")
+        XCTAssertEqual(json["metadata"]["colab"].description, "null")
+
+        let cells = json["cells"]
+        cells.arrayValue.forEach { cell in
+            XCTAssertEqual(cell["outputs"], JSON([]))
+            XCTAssertEqual(cell["execution_count"].description, "null")
+        }
     }
 
     func testTOptionShouldNotUpdateOriginalFile() throws {
         let tempfile = createTemporaryNB()
         let contentBefore = try String(contentsOf: tempfile, encoding: .utf8)
-        _ = executeBinary(
-            arguments: "-t -c \(tempfile.path)".components(separatedBy: " "))
+        _ = executeBinary(arguments: "-t \(tempfile.path)")
         let contentAfter = try String(contentsOf: tempfile, encoding: .utf8)
 
         XCTAssertEqual(contentAfter, contentBefore)
