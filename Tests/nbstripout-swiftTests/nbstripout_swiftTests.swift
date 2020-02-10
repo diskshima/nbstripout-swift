@@ -2,16 +2,23 @@ import XCTest
 import class Foundation.Bundle
 
 final class nbstripout_swiftTests: XCTestCase {
-    func executeBinary() throws -> String? {
+    let sampleNB = "Tests/examples/fizzbuzz_colab.ipynb"
+
+    func executeBinary(arguments: [String]? = []) -> String? {
         let binary = productsDirectory.appendingPathComponent("nbstripout-swift")
 
         let process = Process()
         process.executableURL = binary
+        process.arguments = arguments
 
         let pipe = Pipe()
         process.standardOutput = pipe
 
-        try process.run()
+        guard (try? process.run()) != nil else {
+            XCTFail("Failed to execute process.")
+            return nil
+        }
+
         process.waitUntilExit()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -20,9 +27,24 @@ final class nbstripout_swiftTests: XCTestCase {
     }
 
     func testWhenNoFilepathsAreGiven() throws {
-        let output = try! executeBinary()
-
+        let output = executeBinary()
         XCTAssertEqual(output, "Missing arguments: filepaths\n")
+    }
+
+    func testWhenInvalidFilepathIsGiven() throws {
+        let output = executeBinary(
+            arguments: "INVALID_FILE_PATH".components(separatedBy: " "))
+
+        XCTAssertEqual(output, "Failed to read file.\n")
+    }
+
+    func testTOptionShouldNotUpdateOriginalFile() throws {
+        let contentBefore = try String(contentsOfFile: sampleNB, encoding: .utf8)
+        _ = executeBinary(
+            arguments: "-t -c \(sampleNB)".components(separatedBy: " "))
+        let contentAfter = try String(contentsOfFile: sampleNB, encoding: .utf8)
+
+        XCTAssertEqual(contentAfter, contentBefore)
     }
 
     /// Returns path to the built products directory.
