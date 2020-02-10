@@ -74,26 +74,16 @@ func parseArguments() -> Options? {
         // Options
         var removeOptions = RemoveOptions.none
 
-        if pargs.get(poutputs) ?? false {
-            removeOptions.insert(.outputs)
-        }
-
-        if pargs.get(pexecCount) ?? false {
-            removeOptions.insert(.executionCount)
-        }
-
-        if pargs.get(pcolab) ?? false {
-            removeOptions.insert(.colab)
-        }
+        if pargs.get(poutputs) ?? false { removeOptions.insert(.outputs) }
+        if pargs.get(pexecCount) ?? false { removeOptions.insert(.executionCount) }
+        if pargs.get(pcolab) ?? false { removeOptions.insert(.colab) }
 
         // If nothing was specified, default to clean all.
-        if removeOptions.isEmpty {
-            removeOptions = RemoveOptions.all
-        }
+        if removeOptions.isEmpty { removeOptions = RemoveOptions.all }
 
-        return Options(filepaths: filepaths,
-                       textconv: textconv,
-                       removeOptions: removeOptions)
+        return Options(
+            filepaths: filepaths, textconv: textconv, removeOptions: removeOptions
+        )
     } catch ArgumentParserError.expectedValue(let value) {
         print("Missing value for argument \(value).")
     } catch ArgumentParserError.expectedArguments(_, let stringArray) {
