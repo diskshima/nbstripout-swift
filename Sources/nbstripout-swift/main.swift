@@ -1,6 +1,6 @@
 import Foundation
 
-import SPMUtility
+import ArgumentParserKit
 import SwiftyJSON
 
 enum NBConstants {
