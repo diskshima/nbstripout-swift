@@ -2,7 +2,21 @@ import XCTest
 import class Foundation.Bundle
 
 final class nbstripout_swiftTests: XCTestCase {
-    let sampleNB = "Tests/examples/fizzbuzz_colab.ipynb"
+    let sampleNB = URL(fileURLWithPath: "Tests/examples/fizzbuzz_colab.ipynb")
+
+    func genTempFile() -> URL {
+        let tempDirURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let filename = NSUUID().uuidString
+        return URL(fileURLWithPath: filename, relativeTo: tempDirURL)
+    }
+
+    func createTemporaryNB() -> URL {
+        let tempfile = genTempFile()
+        guard (try? FileManager.default.copyItem(at: sampleNB, to: tempfile)) != nil else {
+            fatalError("Failed to create a temporary copy of the sample notebook.")
+        }
+        return tempfile
+    }
 
     func executeBinary(arguments: [String]? = []) -> String? {
         let binary = productsDirectory.appendingPathComponent("nbstripout-swift")
@@ -39,10 +53,11 @@ final class nbstripout_swiftTests: XCTestCase {
     }
 
     func testTOptionShouldNotUpdateOriginalFile() throws {
-        let contentBefore = try String(contentsOfFile: sampleNB, encoding: .utf8)
+        let tempfile = createTemporaryNB()
+        let contentBefore = try String(contentsOf: tempfile, encoding: .utf8)
         _ = executeBinary(
-            arguments: "-t -c \(sampleNB)".components(separatedBy: " "))
-        let contentAfter = try String(contentsOfFile: sampleNB, encoding: .utf8)
+            arguments: "-t -c \(tempfile.path)".components(separatedBy: " "))
+        let contentAfter = try String(contentsOf: tempfile, encoding: .utf8)
 
         XCTAssertEqual(contentAfter, contentBefore)
     }
