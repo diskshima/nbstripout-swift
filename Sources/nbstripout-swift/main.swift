@@ -40,6 +40,11 @@ func cleanCells(_ json: inout JSON) {
     json[cellsST] = JSON(newCells)
 }
 
+func cleanNotebook(_ json: inout JSON) {
+    cleanMetadata(&json)
+    cleanCells(&json)
+}
+
 let main = command { (filepath: String) in
     let data: Data
     do {
@@ -58,8 +63,7 @@ let main = command { (filepath: String) in
         return
     }
 
-    cleanMetadata(&json)
-    cleanCells(&json)
+    cleanNotebook(&json)
 
     print(json)
 }
