@@ -34,7 +34,7 @@ final class Tests: XCTestCase {
         return json
     }
 
-    func executeBinary(arguments: String? = nil) -> String? {
+    func executeBinary(arguments: String? = nil, stdin: Data? = nil) -> String? {
         let binary = productsDirectory.appendingPathComponent("nbstripout")
 
         let process = Process()
@@ -42,6 +42,14 @@ final class Tests: XCTestCase {
 
         if arguments != nil {
             process.arguments = arguments?.components(separatedBy: " ")
+        }
+
+        let inputPipe: Pipe?
+        if stdin != nil {
+            inputPipe = Pipe()
+            process.standardInput = inputPipe
+        } else {
+            inputPipe = nil
         }
 
         let pipe = Pipe()
@@ -52,16 +60,16 @@ final class Tests: XCTestCase {
             return nil
         }
 
+        if inputPipe != nil {
+            inputPipe!.fileHandleForWriting.write(stdin!)
+            inputPipe!.fileHandleForWriting.closeFile()
+        }
+
         process.waitUntilExit()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
 
         return String(data: data, encoding: .utf8)
-    }
-
-    func testWhenNoFilepathsAreGiven() throws {
-        let output = executeBinary()
-        XCTAssertEqual(output, "Missing arguments: filepaths\n")
     }
 
     func testWhenInvalidFilepathIsGiven() throws {
@@ -166,6 +174,36 @@ final class Tests: XCTestCase {
         }
     }
 
+    func testStandardInputGetsProcessed() throws {
+        guard let content = try? Data(contentsOf: Tests.sampleNB) else {
+            fatalError("Failed to read temprary file.")
+        }
+
+        guard let output = executeBinary(stdin: content) else {
+            XCTFail("Failed to process standard input.")
+            return
+        }
+
+        let data = output.data(using: .utf8, allowLossyConversion: false)!
+
+        let json: JSON
+        do {
+            json = try JSON(data: data)
+        } catch {
+            XCTFail("Failed to parse output as JSON: \(error)")
+            return
+        }
+
+        XCTAssertEqual(json["metadata"]["accelerator"].description, "null")
+        XCTAssertEqual(json["metadata"]["colab"].description, "null")
+
+        let cells = json["cells"]
+        cells.arrayValue.forEach { cell in
+            XCTAssertEqual(cell["outputs"], JSON([]))
+            XCTAssertEqual(cell["execution_count"].description, "null")
+        }
+    }
+
     /// Returns path to the built products directory.
     var productsDirectory: URL {
       #if os(macOS)
@@ -179,6 +217,13 @@ final class Tests: XCTestCase {
     }
 
     static var allTests = [
-        ("testWhenNoFilepathsAreGiven", testWhenNoFilepathsAreGiven)
+        ("testWhenInvalidFilepathIsGiven", testWhenInvalidFilepathIsGiven),
+        ("testCOptionShouldOnlyRemoveColab", testCOptionShouldOnlyRemoveColab),
+        ("testEOptionShouldOnlyRemoveExecutionCount", testEOptionShouldOnlyRemoveExecutionCount),
+        ("testOOptionShouldOnlyRemoveOutputs", testOOptionShouldOnlyRemoveOutputs),
+        ("testNoOptionsShouldRemoveAll", testNoOptionsShouldRemoveAll),
+        ("testTOptionShouldNotUpdateOriginalFile", testTOptionShouldNotUpdateOriginalFile),
+        ("testShouldProcessMultipleFiles", testShouldProcessMultipleFiles),
+        ("testStandardInputGetsProcessed", testStandardInputGetsProcessed)
     ]
 }

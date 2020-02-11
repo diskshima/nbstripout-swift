@@ -59,16 +59,16 @@ func parseArguments() -> CmdOptions? {
                                 completion: ShellCompletion.none)
 
         let pfilepaths = parser.add(positional: "filepaths",
-                                    kind: [String].self,
-                                    optional: false,
-                                    strategy: .upToNextOption,
-                                    usage: "File paths to Jupyter notebooks.",
-                                    completion: ShellCompletion.filename)
+                                kind: [String].self,
+                                optional: true,
+                                strategy: .upToNextOption,
+                                usage: "File paths to Jupyter notebooks.",
+                                completion: ShellCompletion.filename)
 
         let argsv = Array(CommandLine.arguments.dropFirst())
         let pargs = try parser.parse(argsv)
 
-        let filepaths = pargs.get(pfilepaths)!
+        let filepaths = pargs.get(pfilepaths) ?? []
         let textconv = pargs.get(ptextconv) ?? false
 
         var removeOptions = RemoveOptions.none
@@ -92,6 +92,17 @@ func parseArguments() -> CmdOptions? {
     }
 
     return nil
+}
+
+func readAllInput() -> Data {
+    var data = Data()
+    let standardInput = FileHandle.standardInput
+    while true {
+        let input = standardInput.availableData
+        if input.count == 0 { break }
+        data.append(input)
+    }
+    return data
 }
 
 func cleanMetadata(_ json: inout JSON, _ removeOptions: RemoveOptions) {
@@ -147,33 +158,38 @@ func cleanNotebook(_ json: inout JSON, _ removeOptions: RemoveOptions) {
     cleanCells(&json, removeOptions)
 }
 
-func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
-    let data: Data
-    do {
-        let content = try String(contentsOfFile: filepath, encoding: .utf8)
-        data = content.data(using: .utf8, allowLossyConversion: false)!
-    } catch {
-        print("Failed to read file.")
-        return
-    }
-
+func processData(_ data: Data, _ removeOptions: RemoveOptions) -> String {
     guard var json = try? JSON(data: data) else {
         print("Failed to convert data to JSON.")
-        return
+        exit(-1)
     }
 
-    cleanNotebook(&json, cmdOptions.removeOptions)
+    cleanNotebook(&json, removeOptions)
 
     guard let jsonStr = json.rawString() else {
         print("Failed to convert JSON to String.")
         exit(-1)
     }
 
+    return jsonStr
+}
+
+func processFile(_ file: URL, _ cmdOptions: CmdOptions) {
+    let content: Data
+    do {
+        content = try Data(contentsOf: file)
+    } catch {
+        print("Failed to read file.")
+        return
+    }
+
+    let jsonStr = processData(content, cmdOptions.removeOptions)
+
     if cmdOptions.textconv {
         print(jsonStr)
     } else {
         do {
-            try jsonStr.write(toFile: filepath, atomically: false, encoding: .utf8)
+            try jsonStr.write(to: file, atomically: false, encoding: .utf8)
         } catch {
             print("Failed to write to file.")
             exit(-1)
@@ -184,8 +200,14 @@ func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
 func main() {
     guard let cmdOptions = parseArguments() else { exit(-1) }
 
-    for filepath in cmdOptions.filepaths {
-        processFile(filepath, cmdOptions)
+    if cmdOptions.filepaths.count == 0 {
+        let stdinData = readAllInput()
+        let jsonStr = processData(stdinData, cmdOptions.removeOptions)
+        print(jsonStr)
+    } else {
+        for filepath in cmdOptions.filepaths {
+            processFile(URL(fileURLWithPath: filepath), cmdOptions)
+        }
     }
 }
 
