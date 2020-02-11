@@ -30,7 +30,7 @@ struct CmdOptions {
 
 func parseArguments() -> CmdOptions? {
     do {
-        let parser = ArgumentParser(commandName: "nbstripout-swift",
+        let parser = ArgumentParser(commandName: "nbstripout",
                                     usage: "[-ceot] file1 file2...",
                                     overview: "Strip out non-source cells and metadata from Jupyter notebooks")
 

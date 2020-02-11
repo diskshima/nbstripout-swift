@@ -3,7 +3,7 @@ import class Foundation.Bundle
 
 import SwiftyJSON
 
-final class nbstripout_swiftTests: XCTestCase {
+final class Tests: XCTestCase {
     static let sampleNB = URL(fileURLWithPath: "Tests/examples/fizzbuzz_colab.ipynb")
     static let sampleNB2 = URL(fileURLWithPath: "Tests/examples/fibonacci_colab.ipynb")
 
@@ -35,7 +35,7 @@ final class nbstripout_swiftTests: XCTestCase {
     }
 
     func executeBinary(arguments: String? = nil) -> String? {
-        let binary = productsDirectory.appendingPathComponent("nbstripout-swift")
+        let binary = productsDirectory.appendingPathComponent("nbstripout")
 
         let process = Process()
         process.executableURL = binary
@@ -149,7 +149,7 @@ final class nbstripout_swiftTests: XCTestCase {
 
     func testShouldProcessMultipleFiles() throws {
         let tempfile = createTemporaryNB()
-        let tempfile2 = createTemporaryNB(nbstripout_swiftTests.sampleNB2)
+        let tempfile2 = createTemporaryNB(Tests.sampleNB2)
 
         _ = executeBinary(arguments: "\(tempfile.path) \(tempfile2.path)")
 

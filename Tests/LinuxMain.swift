@@ -1,7 +1,7 @@
 import XCTest
 
-import nbstripout_swiftTests
+import Tests
 
 var tests = [XCTestCaseEntry]()
-tests += nbstripout_swiftTests.allTests()
+tests += Tests.allTests()
 XCTMain(tests)

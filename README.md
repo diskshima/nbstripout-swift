@@ -7,7 +7,7 @@
 ```bash
 OVERVIEW: Strip out non-source cells and metadata from Jupyter notebooks
 
-USAGE: nbstripout-swift [-ceot] file1 file2...
+USAGE: nbstripout [-ceot] file1 file2...
 
 OPTIONS:
   --colab, -c             Remove colab related fields.
