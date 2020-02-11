@@ -34,7 +34,7 @@ final class Tests: XCTestCase {
         return json
     }
 
-    func executeBinary(arguments: String? = nil) -> String? {
+    func executeBinary(arguments: String? = nil, stdin: Data? = nil) -> String? {
         let binary = productsDirectory.appendingPathComponent("nbstripout")
 
         let process = Process()
@@ -44,12 +44,25 @@ final class Tests: XCTestCase {
             process.arguments = arguments?.components(separatedBy: " ")
         }
 
+        let inputPipe: Pipe?
+        if stdin != nil {
+            inputPipe = Pipe()
+            process.standardInput = inputPipe
+        } else {
+            inputPipe = nil
+        }
+
         let pipe = Pipe()
         process.standardOutput = pipe
 
         guard (try? process.run()) != nil else {
             XCTFail("Failed to execute process.")
             return nil
+        }
+
+        if inputPipe != nil {
+            inputPipe!.fileHandleForWriting.write(stdin!)
+            inputPipe!.fileHandleForWriting.closeFile()
         }
 
         process.waitUntilExit()
@@ -163,6 +176,37 @@ final class Tests: XCTestCase {
                 XCTAssertEqual(cell["outputs"], JSON([]))
                 XCTAssertEqual(cell["execution_count"].description, "null")
             }
+        }
+    }
+
+    func testStandardInputGetsProcessed() throws {
+        guard let content = try? Data(contentsOf: Tests.sampleNB) else {
+            fatalError("Failed to read temprary file.")
+        }
+
+        guard let output = executeBinary(stdin: content) else {
+            XCTFail("Failed to process standard input.")
+            return
+        }
+
+        let data = output.data(using: .utf8, allowLossyConversion: false)!
+
+        let json: JSON
+        do {
+            json = try JSON(data: data)
+        }
+        catch {
+            XCTFail("Failed to parse output as JSON: \(error)")
+            return
+        }
+
+        XCTAssertEqual(json["metadata"]["accelerator"].description, "null")
+        XCTAssertEqual(json["metadata"]["colab"].description, "null")
+
+        let cells = json["cells"]
+        cells.arrayValue.forEach { cell in
+            XCTAssertEqual(cell["outputs"], JSON([]))
+            XCTAssertEqual(cell["execution_count"].description, "null")
         }
     }
 
