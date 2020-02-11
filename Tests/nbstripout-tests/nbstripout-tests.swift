@@ -72,11 +72,6 @@ final class Tests: XCTestCase {
         return String(data: data, encoding: .utf8)
     }
 
-    func testWhenNoFilepathsAreGiven() throws {
-        let output = executeBinary()
-        XCTAssertEqual(output, "Missing arguments: filepaths\n")
-    }
-
     func testWhenInvalidFilepathIsGiven() throws {
         let output = executeBinary(arguments: "INVALID_FILE_PATH")
 
@@ -194,8 +189,7 @@ final class Tests: XCTestCase {
         let json: JSON
         do {
             json = try JSON(data: data)
-        }
-        catch {
+        } catch {
             XCTFail("Failed to parse output as JSON: \(error)")
             return
         }
@@ -223,6 +217,13 @@ final class Tests: XCTestCase {
     }
 
     static var allTests = [
-        ("testWhenNoFilepathsAreGiven", testWhenNoFilepathsAreGiven)
+        ("testWhenInvalidFilepathIsGiven", testWhenInvalidFilepathIsGiven),
+        ("testCOptionShouldOnlyRemoveColab", testCOptionShouldOnlyRemoveColab),
+        ("testEOptionShouldOnlyRemoveExecutionCount", testEOptionShouldOnlyRemoveExecutionCount),
+        ("testOOptionShouldOnlyRemoveOutputs", testOOptionShouldOnlyRemoveOutputs),
+        ("testNoOptionsShouldRemoveAll", testNoOptionsShouldRemoveAll),
+        ("testTOptionShouldNotUpdateOriginalFile", testTOptionShouldNotUpdateOriginalFile),
+        ("testShouldProcessMultipleFiles", testShouldProcessMultipleFiles),
+        ("testStandardInputGetsProcessed", testStandardInputGetsProcessed)
     ]
 }

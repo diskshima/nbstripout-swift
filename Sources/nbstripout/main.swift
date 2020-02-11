@@ -28,7 +28,7 @@ struct CmdOptions {
     let removeOptions: RemoveOptions
 }
 
-func parseArguments(_ stdinStr: String?) -> CmdOptions? {
+func parseArguments() -> CmdOptions? {
     do {
         let parser = ArgumentParser(commandName: "nbstripout",
                                     usage: "[-ceot] file1 file2...",
@@ -58,25 +58,17 @@ func parseArguments(_ stdinStr: String?) -> CmdOptions? {
                                 usage: "Remove colab related fields.",
                                 completion: ShellCompletion.none)
 
-        var pfilepaths: PositionalArgument<[String]>?
-
-        if stdinStr == nil {
-            pfilepaths = parser.add(positional: "filepaths",
-                                    kind: [String].self,
-                                    optional: false,
-                                    strategy: .upToNextOption,
-                                    usage: "File paths to Jupyter notebooks.",
-                                    completion: ShellCompletion.filename)
-        }
+        let pfilepaths = parser.add(positional: "filepaths",
+                                kind: [String].self,
+                                optional: true,
+                                strategy: .upToNextOption,
+                                usage: "File paths to Jupyter notebooks.",
+                                completion: ShellCompletion.filename)
 
         let argsv = Array(CommandLine.arguments.dropFirst())
         let pargs = try parser.parse(argsv)
 
-        var filepaths: [String] = []
-        if stdinStr == nil {
-            filepaths = pargs.get(pfilepaths!)!
-        }
-
+        let filepaths = pargs.get(pfilepaths) ?? []
         let textconv = pargs.get(ptextconv) ?? false
 
         var removeOptions = RemoveOptions.none
@@ -102,10 +94,10 @@ func parseArguments(_ stdinStr: String?) -> CmdOptions? {
     return nil
 }
 
-func readAllInput() -> String? {
-    var input: String?
+func readAllInput() -> String {
+    var input: String = ""
     while let line = readLine(strippingNewline: false) {
-        input = (input != nil ? input! : "") + line
+        input += line
     }
     return input
 }
@@ -205,11 +197,11 @@ func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
 }
 
 func main() {
-    let stdinStr = readAllInput()
-    guard let cmdOptions = parseArguments(stdinStr) else { exit(-1) }
+    guard let cmdOptions = parseArguments() else { exit(-1) }
 
-    if stdinStr != nil {
-        let jsonStr = processString(stdinStr!, cmdOptions.removeOptions)
+    if cmdOptions.filepaths.count == 0 {
+        let stdinStr = readAllInput()
+        let jsonStr = processString(stdinStr, cmdOptions.removeOptions)
         print(jsonStr)
     } else {
         for filepath in cmdOptions.filepaths {
