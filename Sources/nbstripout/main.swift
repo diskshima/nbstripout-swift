@@ -28,7 +28,7 @@ struct CmdOptions {
     let removeOptions: RemoveOptions
 }
 
-func parseArguments() -> CmdOptions? {
+func parseArguments(_ stdinStr: String?) -> CmdOptions? {
     do {
         let parser = ArgumentParser(commandName: "nbstripout",
                                     usage: "[-ceot] file1 file2...",
@@ -58,17 +58,25 @@ func parseArguments() -> CmdOptions? {
                                 usage: "Remove colab related fields.",
                                 completion: ShellCompletion.none)
 
-        let pfilepaths = parser.add(positional: "filepaths",
+        var pfilepaths: PositionalArgument<[String]>?
+
+        if stdinStr == nil {
+            pfilepaths = parser.add(positional: "filepaths",
                                     kind: [String].self,
                                     optional: false,
                                     strategy: .upToNextOption,
                                     usage: "File paths to Jupyter notebooks.",
                                     completion: ShellCompletion.filename)
+        }
 
         let argsv = Array(CommandLine.arguments.dropFirst())
         let pargs = try parser.parse(argsv)
 
-        let filepaths = pargs.get(pfilepaths)!
+        var filepaths: [String] = []
+        if stdinStr == nil {
+            filepaths = pargs.get(pfilepaths!)!
+        }
+
         let textconv = pargs.get(ptextconv) ?? false
 
         var removeOptions = RemoveOptions.none
@@ -92,6 +100,14 @@ func parseArguments() -> CmdOptions? {
     }
 
     return nil
+}
+
+func readAllInput() -> String? {
+    var input: String?
+    while let line = readLine(strippingNewline: false) {
+        input = (input != nil ? input! : "") + line
+    }
+    return input
 }
 
 func cleanMetadata(_ json: inout JSON, _ removeOptions: RemoveOptions) {
@@ -182,10 +198,28 @@ func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
 }
 
 func main() {
-    guard let cmdOptions = parseArguments() else { exit(-1) }
+    let stdinStr = readAllInput()
+    guard let cmdOptions = parseArguments(stdinStr) else { exit(-1) }
 
-    for filepath in cmdOptions.filepaths {
-        processFile(filepath, cmdOptions)
+    if stdinStr != nil {
+        let data = stdinStr!.data(using: .utf8, allowLossyConversion: false)!
+        guard var json = try? JSON(data: data) else {
+            print("Failed to convert data to JSON.")
+            return
+        }
+
+        cleanNotebook(&json, cmdOptions.removeOptions)
+
+        guard let jsonStr = json.rawString() else {
+            print("Failed to convert JSON to String.")
+            exit(-1)
+        }
+
+        print(jsonStr)
+    } else {
+        for filepath in cmdOptions.filepaths {
+            processFile(filepath, cmdOptions)
+        }
     }
 }
 
