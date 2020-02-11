@@ -94,12 +94,15 @@ func parseArguments() -> CmdOptions? {
     return nil
 }
 
-func readAllInput() -> String {
-    var input: String = ""
-    while let line = readLine(strippingNewline: false) {
-        input += line
+func readAllInput() -> Data {
+    var data = Data()
+    let standardInput = FileHandle.standardInput
+    while true {
+        let input = standardInput.availableData
+        if input.count == 0 { break }
+        data.append(input)
     }
-    return input
+    return data
 }
 
 func cleanMetadata(_ json: inout JSON, _ removeOptions: RemoveOptions) {
@@ -155,9 +158,7 @@ func cleanNotebook(_ json: inout JSON, _ removeOptions: RemoveOptions) {
     cleanCells(&json, removeOptions)
 }
 
-func processString(_ content: String, _ removeOptions: RemoveOptions) -> String {
-    let data = content.data(using: .utf8, allowLossyConversion: false)!
-
+func processData(_ data: Data, _ removeOptions: RemoveOptions) -> String {
     guard var json = try? JSON(data: data) else {
         print("Failed to convert data to JSON.")
         exit(-1)
@@ -173,22 +174,22 @@ func processString(_ content: String, _ removeOptions: RemoveOptions) -> String 
     return jsonStr
 }
 
-func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
-    let content: String
+func processFile(_ file: URL, _ cmdOptions: CmdOptions) {
+    let content: Data
     do {
-        content = try String(contentsOfFile: filepath, encoding: .utf8)
+        content = try Data(contentsOf: file)
     } catch {
         print("Failed to read file.")
         return
     }
 
-    let jsonStr = processString(content, cmdOptions.removeOptions)
+    let jsonStr = processData(content, cmdOptions.removeOptions)
 
     if cmdOptions.textconv {
         print(jsonStr)
     } else {
         do {
-            try jsonStr.write(toFile: filepath, atomically: false, encoding: .utf8)
+            try jsonStr.write(to: file, atomically: false, encoding: .utf8)
         } catch {
             print("Failed to write to file.")
             exit(-1)
@@ -200,12 +201,12 @@ func main() {
     guard let cmdOptions = parseArguments() else { exit(-1) }
 
     if cmdOptions.filepaths.count == 0 {
-        let stdinStr = readAllInput()
-        let jsonStr = processString(stdinStr, cmdOptions.removeOptions)
+        let stdinData = readAllInput()
+        let jsonStr = processData(stdinData, cmdOptions.removeOptions)
         print(jsonStr)
     } else {
         for filepath in cmdOptions.filepaths {
-            processFile(filepath, cmdOptions)
+            processFile(URL(fileURLWithPath: filepath), cmdOptions)
         }
     }
 }
