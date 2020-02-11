@@ -4,7 +4,8 @@ import class Foundation.Bundle
 import SwiftyJSON
 
 final class nbstripout_swiftTests: XCTestCase {
-    let sampleNB = URL(fileURLWithPath: "Tests/examples/fizzbuzz_colab.ipynb")
+    static let sampleNB = URL(fileURLWithPath: "Tests/examples/fizzbuzz_colab.ipynb")
+    static let sampleNB2 = URL(fileURLWithPath: "Tests/examples/fibonacci_colab.ipynb")
 
     func genTempFile() -> URL {
         let tempDirURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -12,9 +13,9 @@ final class nbstripout_swiftTests: XCTestCase {
         return URL(fileURLWithPath: filename, relativeTo: tempDirURL)
     }
 
-    func createTemporaryNB() -> URL {
+    func createTemporaryNB(_ notebook: URL = sampleNB) -> URL {
         let tempfile = genTempFile()
-        guard (try? FileManager.default.copyItem(at: sampleNB, to: tempfile)) != nil else {
+        guard (try? FileManager.default.copyItem(at: notebook, to: tempfile)) != nil else {
             fatalError("Failed to create a temporary copy of the sample notebook.")
         }
         return tempfile
@@ -138,10 +139,31 @@ final class nbstripout_swiftTests: XCTestCase {
     func testTOptionShouldNotUpdateOriginalFile() throws {
         let tempfile = createTemporaryNB()
         let contentBefore = try String(contentsOf: tempfile, encoding: .utf8)
+
         _ = executeBinary(arguments: "-t \(tempfile.path)")
+
         let contentAfter = try String(contentsOf: tempfile, encoding: .utf8)
 
         XCTAssertEqual(contentAfter, contentBefore)
+    }
+
+    func testShouldProcessMultipleFiles() throws {
+        let tempfile = createTemporaryNB()
+        let tempfile2 = createTemporaryNB(nbstripout_swiftTests.sampleNB2)
+
+        _ = executeBinary(arguments: "\(tempfile.path) \(tempfile2.path)")
+
+        [tempfile, tempfile2].forEach { file in
+            let json = readJSON(file)
+            XCTAssertEqual(json["metadata"]["accelerator"].description, "null")
+            XCTAssertEqual(json["metadata"]["colab"].description, "null")
+
+            let cells = json["cells"]
+            cells.arrayValue.forEach { cell in
+                XCTAssertEqual(cell["outputs"], JSON([]))
+                XCTAssertEqual(cell["execution_count"].description, "null")
+            }
+        }
     }
 
     /// Returns path to the built products directory.
