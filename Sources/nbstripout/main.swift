@@ -166,7 +166,10 @@ func processData(_ data: Data, _ removeOptions: RemoveOptions) -> String {
 
     cleanNotebook(&json, removeOptions)
 
-    guard let jsonStr = json.rawString() else {
+    let options: [writingOptionsKeys: JSONSerialization.WritingOptions] =
+        [.jsonSerialization: [.prettyPrinted, .sortedKeys]]
+
+    guard let jsonStr = json.rawString(options) else {
         print("Failed to convert JSON to String.")
         exit(-1)
     }
