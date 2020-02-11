@@ -163,27 +163,34 @@ func cleanNotebook(_ json: inout JSON, _ removeOptions: RemoveOptions) {
     cleanCells(&json, removeOptions)
 }
 
-func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
-    let data: Data
-    do {
-        let content = try String(contentsOfFile: filepath, encoding: .utf8)
-        data = content.data(using: .utf8, allowLossyConversion: false)!
-    } catch {
-        print("Failed to read file.")
-        return
-    }
+func processString(_ content: String, _ removeOptions: RemoveOptions) -> String {
+    let data = content.data(using: .utf8, allowLossyConversion: false)!
 
     guard var json = try? JSON(data: data) else {
         print("Failed to convert data to JSON.")
-        return
+        exit(-1)
     }
 
-    cleanNotebook(&json, cmdOptions.removeOptions)
+    cleanNotebook(&json, removeOptions)
 
     guard let jsonStr = json.rawString() else {
         print("Failed to convert JSON to String.")
         exit(-1)
     }
+
+    return jsonStr
+}
+
+func processFile(_ filepath: String, _ cmdOptions: CmdOptions) {
+    let content: String
+    do {
+        content = try String(contentsOfFile: filepath, encoding: .utf8)
+    } catch {
+        print("Failed to read file.")
+        return
+    }
+
+    let jsonStr = processString(content, cmdOptions.removeOptions)
 
     if cmdOptions.textconv {
         print(jsonStr)
@@ -202,19 +209,7 @@ func main() {
     guard let cmdOptions = parseArguments(stdinStr) else { exit(-1) }
 
     if stdinStr != nil {
-        let data = stdinStr!.data(using: .utf8, allowLossyConversion: false)!
-        guard var json = try? JSON(data: data) else {
-            print("Failed to convert data to JSON.")
-            return
-        }
-
-        cleanNotebook(&json, cmdOptions.removeOptions)
-
-        guard let jsonStr = json.rawString() else {
-            print("Failed to convert JSON to String.")
-            exit(-1)
-        }
-
+        let jsonStr = processString(stdinStr!, cmdOptions.removeOptions)
         print(jsonStr)
     } else {
         for filepath in cmdOptions.filepaths {
