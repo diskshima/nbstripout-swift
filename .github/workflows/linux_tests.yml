@@ -1,0 +1,18 @@
+name: Linux Tests
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: YOCKOW/Action-setup-swift@master
+      with:
+        swift-version: '5.1.2'
+    - uses: actions/checkout@v2
+    - name: Fetch/resolve dependencies
+      run: swift package resolve
+    - name: Apply patches for Linux
+      run: ./linux_patches/apply.sh
+    - name: Run tests
+      run: swift test -v

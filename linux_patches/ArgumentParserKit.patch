@@ -1,0 +1,14 @@
+diff --git a/ArgumentParserKit/Classes/OutputByteStream.swift b/ArgumentParserKit/Classes/OutputByteStream.swift
+index b2886fa..162c370 100644
+--- a/ArgumentParserKit/Classes/OutputByteStream.swift
++++ b/ArgumentParserKit/Classes/OutputByteStream.swift
+@@ -8,6 +8,9 @@
+  See http://swift.org/CONTRIBUTORS.txt for Swift project authors
+ */
+ import Dispatch
++#if os(Linux)
++    import Glibc
++#endif
+ 
+ /// Convert an integer in 0..<16 to its hexadecimal ASCII character.
+ private func hexdigit(_ value: UInt8) -> UInt8 {

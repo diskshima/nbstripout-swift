@@ -1,7 +1,6 @@
 import XCTest
+@testable import nbstripout_tests
 
-import Tests
-
-var tests = [XCTestCaseEntry]()
-tests += Tests.allTests()
-XCTMain(tests)
+XCTMain([
+    testCase(nbstripout_tests.allTests)
+])
