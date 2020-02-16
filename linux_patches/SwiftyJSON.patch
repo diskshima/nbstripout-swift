@@ -1,0 +1,29 @@
+diff --git a/Source/SwiftyJSON/SwiftyJSON.swift b/Source/SwiftyJSON/SwiftyJSON.swift
+index f7a3f08..7030578 100644
+--- a/Source/SwiftyJSON/SwiftyJSON.swift
++++ b/Source/SwiftyJSON/SwiftyJSON.swift
+@@ -1248,24 +1248,6 @@ func != (lhs: NSNumber, rhs: NSNumber) -> Bool {
+     return !(lhs == rhs)
+ }
+ 
+-func < (lhs: NSNumber, rhs: NSNumber) -> Bool {
+-
+-    switch (lhs.isBool, rhs.isBool) {
+-    case (false, true): return false
+-    case (true, false): return false
+-    default:            return lhs.compare(rhs) == .orderedAscending
+-    }
+-}
+-
+-func > (lhs: NSNumber, rhs: NSNumber) -> Bool {
+-
+-    switch (lhs.isBool, rhs.isBool) {
+-    case (false, true): return false
+-    case (true, false): return false
+-    default:            return lhs.compare(rhs) == ComparisonResult.orderedDescending
+-    }
+-}
+-
+ func <= (lhs: NSNumber, rhs: NSNumber) -> Bool {
+ 
+     switch (lhs.isBool, rhs.isBool) {

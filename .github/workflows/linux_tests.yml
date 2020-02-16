@@ -1,0 +1,13 @@
+name: Linux Tests
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Apply Patches for Linux
+      run: ./linux_patches/apply.sh
+    - name: Run tests
+      run: swift test -v
