@@ -6,6 +6,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - uses: YOCKOW/Action-setup-swift@master
+      with:
+        swift-version: '5.1.2'
     - uses: actions/checkout@v2
     - name: Fetch/resolve dependencies
       run: swift package resolve
