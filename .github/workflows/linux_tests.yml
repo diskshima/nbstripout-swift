@@ -7,7 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Apply Patches for Linux
+    - name: Fetch/resolve dependencies
+      run: swift package resolve
+    - name: Apply patches for Linux
       run: ./linux_patches/apply.sh
     - name: Run tests
       run: swift test -v
