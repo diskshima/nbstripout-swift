@@ -1,6 +1,6 @@
 import XCTest
-import NBStripoutTests
+@testable import nbstripout_tests
 
 XCTMain([
-  testCase(NBStripoutTests.allTests)
+    testCase(nbstripout_tests.allTests)
 ])

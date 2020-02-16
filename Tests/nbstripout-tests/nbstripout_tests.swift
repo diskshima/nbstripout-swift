@@ -3,7 +3,7 @@ import class Foundation.Bundle
 
 import SwiftyJSON
 
-public final class NBStripoutTests: XCTestCase {
+final class nbstripout_tests: XCTestCase {
     static let sampleNB = URL(fileURLWithPath: "Tests/examples/fizzbuzz_colab.ipynb")
     static let sampleNB2 = URL(fileURLWithPath: "Tests/examples/fibonacci_colab.ipynb")
 
@@ -157,7 +157,7 @@ public final class NBStripoutTests: XCTestCase {
 
     func testShouldProcessMultipleFiles() throws {
         let tempfile = createTemporaryNB()
-        let tempfile2 = createTemporaryNB(NBStripoutTests.sampleNB2)
+        let tempfile2 = createTemporaryNB(nbstripout_tests.sampleNB2)
 
         _ = executeBinary(arguments: "\(tempfile.path) \(tempfile2.path)")
 
@@ -175,7 +175,7 @@ public final class NBStripoutTests: XCTestCase {
     }
 
     func testStandardInputGetsProcessed() throws {
-        guard let content = try? Data(contentsOf: NBStripoutTests.sampleNB) else {
+        guard let content = try? Data(contentsOf: nbstripout_tests.sampleNB) else {
             fatalError("Failed to read temprary file.")
         }
 
@@ -216,7 +216,7 @@ public final class NBStripoutTests: XCTestCase {
       #endif
     }
 
-    public static var allTests = [
+    static var allTests = [
         ("testWhenInvalidFilepathIsGiven", testWhenInvalidFilepathIsGiven),
         ("testCOptionShouldOnlyRemoveColab", testCOptionShouldOnlyRemoveColab),
         ("testEOptionShouldOnlyRemoveExecutionCount", testEOptionShouldOnlyRemoveExecutionCount),
